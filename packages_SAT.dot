@@ -1,0 +1,18 @@
+digraph "packages_SAT" {
+rankdir=BT
+charset="utf-8"
+"satellite_galaxy" [color="black", label="satellite_galaxy", shape="box", style="solid"];
+"satellite_galaxy.orbit" [color="black", label="satellite_galaxy.orbit", shape="box", style="solid"];
+"satellite_galaxy.orbit.calc_rtidal" [color="black", label="satellite_galaxy.orbit.calc_rtidal", shape="box", style="solid"];
+"satellite_galaxy.orbit.calc_satellite_orbit" [color="black", label="satellite_galaxy.orbit.calc_satellite_orbit", shape="box", style="solid"];
+"satellite_galaxy.orbit.integrate_orbit" [color="black", label="satellite_galaxy.orbit.integrate_orbit", shape="box", style="solid"];
+"satellite_galaxy.potential" [color="black", label="satellite_galaxy.potential", shape="box", style="solid"];
+"satellite_galaxy.potential.nfw" [color="black", label="satellite_galaxy.potential.nfw", shape="box", style="solid"];
+"satellite_galaxy.potential.plummer" [color="black", label="satellite_galaxy.potential.plummer", shape="box", style="solid"];
+"satellite_galaxy.potential.potential" [color="black", label="satellite_galaxy.potential.potential", shape="box", style="solid"];
+"satellite_galaxy.test" [color="black", label="satellite_galaxy.test", shape="box", style="solid"];
+"satellite_galaxy.test.test_nfw" [color="black", label="satellite_galaxy.test.test_nfw", shape="box", style="solid"];
+"satellite_galaxy.orbit.calc_satellite_orbit" -> "satellite_galaxy.orbit.integrate_orbit" [arrowhead="open", arrowtail="none"];
+"satellite_galaxy.potential.nfw" -> "satellite_galaxy.potential.potential" [arrowhead="open", arrowtail="none"];
+"satellite_galaxy.potential.plummer" -> "satellite_galaxy.potential.potential" [arrowhead="open", arrowtail="none"];
+}
