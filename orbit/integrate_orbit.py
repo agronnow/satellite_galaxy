@@ -1,5 +1,5 @@
 import numpy as np
-from ..potential import potential
+from satellite_init.potential import potential
 
 class integrate_orbit:
    def __init__(self,pot,evol=False,res=1):
