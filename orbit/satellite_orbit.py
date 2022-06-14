@@ -51,7 +51,7 @@ class satellite_orbit:
             self.galcen_dist = 8.122 * u.kpc
             self.galcen_vsun = coord.CartesianDifferential(10.0 * u.km / u.s, 240.0 * u.km / u.s, 7.0 * u.km / u.s)
             fname = "dsphs.dat"
-        satellite_table = read_csv("dsphs.dat",sep="\s+",comment="#")
+        satellite_table = read_csv("dsphs.dat", sep="\s+", comment="#")
         self.orbit_data = satellite_table.set_index("Name").to_dict(orient="index")
 
     def calc_single_orbit(self, data, tbeg, tend, dm=None, pm_ra=None, pm_dec=None, rettime=False):
@@ -64,7 +64,7 @@ class satellite_orbit:
             pm_ra = data["pm_ra"]
         if pm_dec is None:
             pm_dec = data["pm_dec"]
-        i = coord.SkyCoord(ra=data["ra"], dec=data["dec"], distance= dist * u.kpc,
+        i = coord.SkyCoord(ra=data["ra"], dec=data["dec"], distance=dist * u.kpc,
                            pm_ra_cosdec=pm_ra * u.mas / u.yr, pm_dec=pm_dec * u.mas / u.yr,
                            radial_velocity=data["radvel"] * u.km / u.s, frame='icrs')
         g = i.transform_to(coord.Galactocentric(galcen_distance=self.galcen_dist, galcen_v_sun=self.galcen_vsun))
@@ -88,11 +88,11 @@ class satellite_orbit:
 
         vel /= 10.3
         if rettime:
-            return ts,r,vel
+            return ts, r, vel
         else:
             return r, vel
 
-    def calc_orbit(self, name, tbeg = 0.0, tend = 0.01, nmontecarlo = 0, nproc = 1, res=100):
+    def calc_orbit(self, name, tbeg=0.0, tend=0.01, nmontecarlo=0, nproc=1, res=100):
         try:
             data = self.orbit_data[name]
         except KeyError:
@@ -109,7 +109,7 @@ class satellite_orbit:
         self.vels = np.zeros([niter + 1, 3, nmontecarlo + 1])
         self.rads = np.zeros([niter + 1, 3, nmontecarlo + 1])
 
-        self.ts, r, vel = self.calc_single_orbit(data, tbeg, tend, rettime = True)
+        self.ts, r, vel = self.calc_single_orbit(data, tbeg, tend, rettime=True)
         self.vels[:, :, 0] = vel
         self.rads[:, :, 0] = r
 
@@ -120,21 +120,20 @@ class satellite_orbit:
             dms = rng.normal(data["distmod"], data["distmod_err"], nmontecarlo)
             pool = multiprocessing.Pool(processes=nproc)
             result = pool.starmap(self.calc_single_orbit,
-                                  zip(repeat(data), repeat(tbeg), repeat(tend), repeat(dms),
-                                  repeat(pm_ra_cosdecs), repeat(pm_decs)))
+                                  zip(repeat(data), repeat(tbeg), repeat(tend), dms,
+                                      pm_ra_cosdecs, pm_decs))
             for imc in range(0, nmontecarlo):
                 self.rads[:, :, 1 + imc] = result[imc][0]
                 self.vels[:, :, 1 + imc] = result[imc][1]
 
             if self.mcdir != "":
-                np.savez_compressed(self.mcdir + "/orbits_" + name + ".npz", ts=ts,
-                                    rads=rads, vels=vels)
+                np.savez_compressed(self.mcdir + "/orbits_" + name + ".npz", ts=self.ts,
+                                    rads=self.rads, vels=self.vels)
 
     def get_orbit(self, to1d=True):
         if to1d:
-            rd = np.sqrt(self.rads[:,0,:]**2+self.rads[:,1,:]**2+self.rads[:,2,:]**2)
-            vd = np.sqrt(self.vels[:,0,:]**2+self.vels[:,1,:]**2+self.vels[:,2,:]**2)
+            rd = np.sqrt(self.rads[:, 0, :] ** 2 + self.rads[:, 1, :] ** 2 + self.rads[:, 2, :] ** 2)
+            vd = np.sqrt(self.vels[:, 0, :] ** 2 + self.vels[:, 1, :] ** 2 + self.vels[:, 2, :] ** 2)
             return self.ts, rd, vd
         else:
             return self.ts, self.rads, self.vels
-
