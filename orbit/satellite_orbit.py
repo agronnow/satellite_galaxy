@@ -92,7 +92,7 @@ class satellite_orbit:
         else:
             return r, vel
 
-    def calc_orbit(self, name, tbeg=0.0, tend=0.01, nmontecarlo=0, nproc=1, res=100):
+    def calc_orbit(self, name, tbeg=0.0, tend=0.01, nmontecarlo=0, nproc=1, res=100, sample_only=False, from_table=False, fname = ""):
         try:
             data = self.orbit_data[name]
         except KeyError:
@@ -114,22 +114,29 @@ class satellite_orbit:
         self.rads[:, :, 0] = r
 
         if nmontecarlo > 0:
-            # randomly sample distances and proper motions based on observed uncertainties
-            rng = default_rng()
-            pm_ra_cosdecs = rng.normal(data["pm_ra"], data["pm_ra_err"], nmontecarlo)
-            pm_decs = rng.normal(data["pm_dec"], data["pm_dec_err"], nmontecarlo)
-            dms = rng.normal(data["distmod"], data["distmod_err"], nmontecarlo)
+            if from_table:
+                pm_ra_cosdecs, pm_decs, dms = np.loadtxt("samples.dat",unpack=True)
+            else:
+                # randomly sample distances and proper motions based on observed uncertainties
+                rng = default_rng()
+                pm_ra_cosdecs = rng.normal(data["pm_ra"], data["pm_ra_err"], nmontecarlo)
+                pm_decs = rng.normal(data["pm_dec"], data["pm_dec_err"], nmontecarlo)
+                dms = rng.normal(data["distmod"], data["distmod_err"], nmontecarlo)
+
+                np.savetxt("samples.dat",np.c_[pm_ra_cosdecs, pm_decs, dms])
+                if sample_only:
+                    return
 
             pool = multiprocessing.Pool(processes=nproc)
             orbits = pool.starmap(self.calc_single_orbit,
                                   zip(repeat(data), repeat(tbeg), repeat(tend), dms,
                                       pm_ra_cosdecs, pm_decs))
             # extract radius and velocity vectors from list of orbits
-            self.rads[:, :, 1, :] = np.moveaxis(np.array(orbits)[:, 0, :, :], 0, 2)
-            self.vels[:, :, 1, :] = np.moveaxis(np.array(orbits)[:, 1, :, :], 0, 2)
+            self.rads = np.moveaxis(np.array(orbits)[:, 0, :, :], 0, 2)
+            self.vels = np.moveaxis(np.array(orbits)[:, 1, :, :], 0, 2)
 
             if self.mcdir != "":
-                np.savez_compressed(self.mcdir + "/orbits_" + name + ".npz", ts=self.ts,
+                np.savez_compressed(self.mcdir + "/orbits_" + name + fname + ".npz", ts=self.ts,
                                     rads=self.rads, vels=self.vels)
 
     def get_orbit(self, to1d=True):
