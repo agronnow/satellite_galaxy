@@ -11,7 +11,7 @@ class nfw(potential):
     or in terms of virial mass, virial radius, and concentration
     """
 
-    def __init__(self, rhos=None, rs=None, mvir=None, rvir=None, c=None, ms=None, Msun=False, interp=False, h0=0.67, evol_method="zhao"):
+    def __init__(self, rhos=None, rs=None, mvir=None, rvir=None, c=None, ms=None, Msun=False, interp=False, h0=0.67, t0=None, evol_method="zhao"):
         self.t_cur = None
         self.ttab = None
         self.ztab = None
@@ -32,12 +32,15 @@ class nfw(potential):
             self.buist = False
             self.evol_program_path = r'/Users/users/gronnow/src/vandenbosch14/getPWGH'
             self.evol_table_path = '/Users/users/gronnow/src/vandenbosch14/PWGH_median.dat'
+            self.evol = True
         elif evol_method == "buist":
             self.buist = True
+            self.evol = True
         else: #default: Zhao et al. 2009
             self.buist = False
             self.evol_program_path = r'/Users/users/gronnow/src/evolzhao'
             self.evol_table_path = 'haloevol.dat'
+            self.evol = True
         if (rs is not None) and (ms is not None):
             self.rs = rs
             self.rs0 = rs
@@ -46,9 +49,11 @@ class nfw(potential):
             self.buist = True
             self.a_g = 0.2
             self.gamma=2.0
+            self.evol = True
         elif (rhos is not None) and (rs is not None):
             self.rhos = rhos
             self.rs = rs
+            self.evol = False
         elif (mvir is not None) and (rvir is not None) and (c is not None):
             if Msun:
                 self.mvir = mvir / 24393036.0465
@@ -57,17 +62,21 @@ class nfw(potential):
             self.rvir = rvir
             self.c = c
             self.rs = self.rvir / self.c
+            self.evol = False
         elif (mvir is not None):
             if Msun:
                 self.mvir = mvir / 24393036.0465
             else:
                 self.mvir = mvir
+            self.evol = True
             self.evaluate_at_time("now")
         else:
             raise ValueError("Not enough information to initialize NFW potential")
+        if not self.evol:
+            self.t0 = t0
 
     def evaluate_at_time(self, t):
-        if t == self.t_cur: return
+        if (not self.evol) or (t == self.t_cur): return
         if self.ttab is None:
             if not self.buist:
                 subprocess.call([self.evol_program_path,
@@ -123,7 +132,13 @@ class nfw(potential):
         self.t_cur = t
 
     def now(self):
-        return self.ttab[0]
+        if self.evol:
+            return self.ttab[0]
+        elif self.t0 is not None:
+            return self.t0
+        else:
+            #convert H_0 to Hubble time and apply Planck correction to obtain approximate age of Universe
+            return 977.8*0.956/self.h0
 
     def rhos_from_ms(self, ms):
         self.rhos = ms/(4.0 * np.pi * self.rs ** 3 * (np.log(2.0) - 0.5))

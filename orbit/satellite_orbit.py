@@ -36,7 +36,7 @@ class satellite_orbit:
                 if evol:
                     pot = nfw(mvir=mass, Msun=True)
                 else:
-                    pot = nfw(mvir=mass, rvir=245.0, c=15.3, Msun=True)  # Matches NFW potential in MW14 model
+                    pot = nfw(mvir=mass, rvir=245.0, c=15.3, Msun=True, t0=13.88e9)  # Matches NFW potential in MW14 model
                 self.integrator = integrate_orbit(pot, evol, res)
             else:
                 self.integrator = integrator
@@ -57,7 +57,7 @@ class satellite_orbit:
     def calc_single_orbit(self, data, tbeg, tend, dm=None, pm_ra=None, pm_dec=None, rettime=False):
         # dm,ra,dec,data,tbeg,tend = args
         if dm is None:
-            dist = data["dist"]
+            dist = 10 ** (data["distmod"] / 5.0 - 2.0) #data["dist"]
         else:
             dist = 10 ** (dm / 5.0 - 2.0)
         if pm_ra is None:
@@ -72,8 +72,8 @@ class satellite_orbit:
             ts = np.linspace(tbeg, tend, self.res) * u.Gyr
             o = galpy.orbit.Orbit(g)
             o.integrate(ts, self.pot)
-            vel = np.zeros([len(ts), 2])
-            r = np.zeros([len(ts), 2])
+            vel = np.zeros([len(ts), 3])
+            r = np.zeros([len(ts), 3])
             vel[:, 0] = o.vx(ts)
             vel[:, 1] = o.vy(ts)
             vel[:, 2] = o.vz(ts)
@@ -100,7 +100,7 @@ class satellite_orbit:
             return
 
         if self.integrator is None:
-            niter = self.res
+            niter = self.res - 1
         else:
             if tbeg == 0.0:
                 tbeg = self.integrator.pot.now() / 1.e9
